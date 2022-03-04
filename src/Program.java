@@ -1,6 +1,12 @@
 public class Program {
     public static void main(String[] args) {
+        double[] a = {1, 2};
+        Point2D start = new Point2D(a);
+        double[] b = {3, 4};
+        Point2D finish = new Point2D(b);
 
+        Segment s = new Segment(start,finish);
+        System.out.println(s.toString());
     }
 //    public double determinant(double [] A){
 //        if (A.length != 9)
@@ -100,9 +106,13 @@ class Point{
         return symAxis(this, i);
     }
 
-//    String toString(){
-//
-//    }
+    public String toString(){
+        String x_str = "";
+        for(int i=0;i<dim;i++) {
+            x_str += x[i] + " ";
+        }
+        return "dim: " + dim + ", x: " + x_str;
+    }
 }
 
 class Point2D extends Point{
@@ -110,7 +120,7 @@ class Point2D extends Point{
         super(2);
     }
 
-    Point2D(double [] x){
+    public Point2D(double [] x){
         super(2, x);
     }
 
@@ -165,21 +175,34 @@ class Point3D extends Point{
     }
 }
 
-interface IShape{
+interface IMoveable{
+    IMoveable shift(Point2D a);
+    IMoveable rot(double phi);
+    IMoveable symAxis(int i);
+}
+
+interface IShape extends IMoveable{
     double square();
     double length();
     boolean cross(IShape i);
 }
 
+interface IPolyPoint extends IShape{
+    Point2D getP(int i);
+    void setP(Point2D p, int i);
+}
+
 abstract class OpenFigure implements IShape{
-    public abstract double square();
+    public double square(){
+        return 0;
+    }
 }
 
 class Segment extends OpenFigure{
     Point2D start;
     Point2D finish;
 
-    Segment(Point2D s, Point2D f){
+    public Segment(Point2D s, Point2D f){
         this.start = s;
         this.finish = f;
     }
@@ -205,8 +228,219 @@ class Segment extends OpenFigure{
     }
 
     public Segment shift(Point2D a){
-        return new Segment((Point2D)Point.add(start, a), (Point2D)Point.add(finish, a));
+        return new Segment((Point2D)start.add(a), (Point2D)finish.add(a));
     }
 
+    public Segment rot(double phi){
+        return new Segment(start.rot(phi), finish.rot(phi));
+    }
+
+    public Segment symAxis(int i){
+        return new Segment((Point2D)start.symAxis(i), (Point2D)finish.symAxis(i));
+    }
+
+    public boolean cross(IShape i){
+
+        return true;
+    }
+
+    public String toString(){
+        return "start: " + start.toString() + ", finish: " + finish.toString() + '\n';
+    }
+}
+
+class Polyline  extends OpenFigure implements IPolyPoint{
+    int n;
+    Point2D[] p;
+
+    Polyline(Point2D[] p){
+         this.p = p;
+    }
+
+    int getN(){
+        return n;
+    }
+
+    Point2D[] getP(){
+        return p;
+    }
+
+    public Point2D getP(int i){
+        return p[i];
+    }
+
+    void setP(Point2D[] p){
+        this.p = p;
+    }
+
+    public void setP(Point2D p, int i){
+        this.p[i] = p;
+    }
+
+    public double length(){
+        int l = 0;
+        Segment[] polyline = new Segment[n-1];
+        for(int i=0; i<n-1; i++) {
+            polyline[i] = new Segment(p[i], p[i + 1]);
+            l += polyline[i].length();
+        }
+        return l;
+    }
+
+    public Polyline shift(Point2D a){
+        for(int i=0;i<n;i++)
+           p[i] = (Point2D)p[i].add(a);
+        return new Polyline(p);
+    }
+
+    public Polyline rot(double phi){
+        for(int i=0;i<n;i++)
+            p[i] = (Point2D)p[i].rot(phi);
+        return new Polyline(p);
+    }
+
+    public Polyline symAxis(int i){
+        for(int ind=0;ind<n;ind++)
+            p[ind] = (Point2D)p[ind].symAxis(i);
+        return new Polyline(p);
+    }
+
+    public boolean cross(IShape i){
+        return true;
+    }
+
+   public String toString(){
+        return "n: " + n + ", p: " + p.toString() + '\n';
+    }
+}
+
+class Circle implements IShape{
+    Point2D p;
+    double r;
+
+    Circle(Point2D p, double r){
+        this.p = p;
+        this.r = r;
+    }
+
+    Point2D getP(){
+        return p;
+    }
+
+    void setP(Point2D p){
+        this.p = p;
+    }
+
+    double getR(){
+        return r;
+    }
+
+    void setR(double r){
+        this.r = r;
+    }
+
+    public double square(){
+        return Math.PI*r*r;
+    }
+
+    public double length(){
+        return 2*Math.PI*r;
+    }
+
+    public Circle shift(Point2D a){
+        return new Circle((Point2D) p.add(a), r);
+    }
+
+    public Circle rot(double phi){
+        return new Circle((Point2D)p.rot(phi), r);
+    }
+
+    public Circle symAxis(int i){
+        return new Circle((Point2D)p.symAxis(i), r);
+    }
+
+    public boolean cross(IShape i){
+        return true;
+    }
+
+    public String toString() {
+        return "p: " + p.toString() + ", r:" + r + '\n';
+    }
+}
+
+class NGon implements IShape, IPolyPoint{
+    int n;
+    Point2D[] p;
+
+    NGon(Point2D[] p){
+        this.p = p;
+    }
+
+    int getN(){
+        return n;
+    }
+
+    Point2D[] getP(){
+        return p;
+    }
+
+    public Point2D getP(int i){
+        return p[i];
+    }
+
+    void setP(Point2D[] p){
+        this.p = p;
+    }
+
+    public void setP(Point2D p, int i){
+        this.p[i] = p;
+    }
+
+    public double square(){
+
+    }
+
+    public double length(){
+        Polyline polyline = new Polyline(p);
+        double len = polyline.length();
+        Segment segment = new Segment(p[0], p[n-1]);
+        len += segment.length();
+        return len;
+    }
+
+    public NGon shift(Point2D a){
+        Point2D [] p_new = new Point2D[n];
+        for(int i=0;i<n;i++)
+            p_new[i] = (Point2D)p[i].add(a);
+        return new NGon(p_new);
+    }
+
+    public NGon rot(double phi){
+        Point2D [] p_new = new Point2D[n];
+        for(int i=0;i<n;i++)
+            p_new[i] = (Point2D)p[i].rot(phi);
+        return new NGon(p_new);
+    }
+
+    public NGon symAxis(int i){
+        Point2D [] p_new = new Point2D[n];
+        for(int ind=0;ind<n;ind++)
+            p_new[ind] = (Point2D)p[ind].symAxis(ind);
+        return new NGon(p_new);
+    }
+
+    public boolean cross(IShape i){
+        return true;
+    }
+
+    public String toString(){
+        return "n: " + n + ", p: " + p.toString() + '\n';
+    }
+}
+
+class TGon extends NGon{
+    TGon(Point2D[] p){
+        super(p);
+    }
 
 }
