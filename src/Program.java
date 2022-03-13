@@ -1,12 +1,21 @@
 public class Program {
     public static void main(String[] args) {
-        double[] a = {1, 2};
+        double[] a = {6, 7};
         Point2D start = new Point2D(a);
         double[] b = {3, 4};
         Point2D finish = new Point2D(b);
 
         Segment s = new Segment(start,finish);
         System.out.println(s.toString());
+
+        double[] c = {8, 9};
+        Point2D start1 = new Point2D(c);
+        double[] d = {1, 2};
+
+        Point2D finish2 = new Point2D(d);
+        Segment s1 = new Segment(start1,finish2);
+        s1.shift(start);
+        System.out.println(s1.toString());
     }
 //    public double determinant(double [] A){
 //        if (A.length != 9)
@@ -240,8 +249,70 @@ class Segment extends OpenFigure{
     }
 
     public boolean cross(IShape i){
+        if (!(i instanceof Segment))
+            throw new IllegalArgumentException(i + " is not Segment");
+        Point2D p1 = start;
+        Point2D p2 = finish;
+        Point2D p3 = ((Segment) i).start;
+        Point2D p4 = ((Segment) i).finish;
+        if (p1.x[0] > p2.x[1])
+        {
+            Point2D tmp = p1;
+            p1 = p2;
+            p2 = tmp;
+        }
+        if (p3.x[0] > p4.x[0])
+        {
+            Point2D tmp = p3;
+            p3 = p4;
+            p4 = tmp;
+        }
+        if (p2.x[0] < p3.x[0])
+            return false;
+        if((p1.x[0] - p2.x[0] == 0) && (p3.x[0] - p4.x[0] == 0)) {
+            if (p1.x == p3.x)
+                if (!((Math.max(p1.x[1], p2.x[1]) < Math.min(p3.x[1], p4.x[1])) ||
+                        (Math.min(p1.x[1], p2.x[1]) > Math.max(p3.x[1], p4.x[1]))))
+                    return true;
+            return false;
+        }
+        if (p1.x[0] - p2.x[0] == 0) {
+            //найдём Xa, Ya - точки пересечения двух прямых
+            double Xa = p1.x[0];
+            double A2 = (p3.x[1] - p4.x[1]) / (p3.x[0] - p4.x[0]);
+            double b2 = p3.x[1] - A2 * p3.x[0];
+            double Ya = A2 * Xa + b2;
+            if (p3.x[0] <= Xa && p4.x[0] >= Xa && Math.min(p1.x[1], p2.x[1]) <= Ya &&
+                    Math.max(p1.x[1], p2.x[1]) >= Ya)
+                return true;
+            return false;
+        }
+        if (p3.x[0] - p4.x[0] == 0) {
+            //найдём Xa, Ya - точки пересечения двух прямых
+            double Xa = p3.x[0];
+            double A1 = (p1.x[1] - p2.x[1]) / (p1.x[0] - p2.x[0]);
+            double b1 = p1.x[1] - A1 * p1.x[0];
+            double Ya = A1 * Xa + b1;
 
-        return true;
+            if (p1.x[0] <= Xa && p2.x[0] >= Xa && Math.min(p3.x[1], p4.x[1]) <= Ya &&
+                    Math.max(p3.x[1], p4.x[1]) >= Ya)
+                return true;
+            return false;
+        }
+        //оба отрезка невертикальные
+        double A1 = (p1.x[1] - p2.x[1]) / (p1.x[0] - p2.x[0]);
+        double A2 = (p3.x[1] - p4.x[1]) / (p3.x[0] - p4.x[0]);
+        double b1 = p1.x[1] - A1 * p1.x[0];
+        double b2 = p3.x[1] - A2 * p3.x[0];
+        if (A1 == A2) {
+            return false; //отрезки параллельны
+        }
+        //Xa - абсцисса точки пересечения двух прямых
+        double Xa = (b2 - b1) / (A1 - A2);
+        if ((Xa < Math.max(p1.x[0], p3.x[0])) || (Xa > Math.min(p2.x[0], p4.x[0])))
+            return false; //точка Xa находится вне пересечения проекций отрезков на ось X
+        else
+            return true;
     }
 
     public String toString(){
@@ -306,7 +377,22 @@ class Polyline  extends OpenFigure implements IPolyPoint{
     }
 
     public boolean cross(IShape i){
-        return true;
+        if (!(i instanceof Polyline))
+            throw new IllegalArgumentException(i + " is not Polyline");
+
+        Segment[] i_polyline = new Segment[((Polyline) i).n-1];
+        for(int ind=0; ind<((Polyline) i).n-1; ind++)
+            i_polyline[ind] = new Segment(((Polyline) i).p[ind], ((Polyline) i).p[ind + 1]);
+
+        Segment[] this_polyline = new Segment[this.n-1];
+        for(int ind=0; ind<this.n-1; ind++)
+            this_polyline[ind] = new Segment(this.p[ind], this.p[ind + 1]);
+
+        for(int ind_1=0; ind_1<((Polyline) i).n-1; ind_1++)
+            for(int ind_2=0; ind_2<this.n-1; ind_2++)
+                if (i_polyline[ind_1].cross(this_polyline[ind_2]))
+                    return true;
+        return false;
     }
 
    public String toString(){
@@ -360,7 +446,15 @@ class Circle implements IShape{
     }
 
     public boolean cross(IShape i){
-        return true;
+        if (!(i instanceof Circle))
+            throw new IllegalArgumentException(i + " is not Circle");
+
+        Circle circle_i = (Circle)i;
+        double d = Math.sqrt(Math.pow(circle_i.p.x[0]-this.p.x[0], 2) + Math.pow(circle_i.p.x[1]-this.p.x[1], 2));
+        if (circle_i.r + this.r >= d)
+            return true;
+        else
+            return false;
     }
 
     public String toString() {
@@ -397,7 +491,10 @@ class NGon implements IShape, IPolyPoint{
     }
 
     public double square(){
-
+        double s = 0;
+        for(int i=0;i<n-1;i++)
+            s += p[i].x[0]*p[i+1].x[1]-p[i].x[1]*p[i+1].x[0];
+        return Math.abs(s/2);
     }
 
     public double length(){
@@ -430,7 +527,23 @@ class NGon implements IShape, IPolyPoint{
     }
 
     public boolean cross(IShape i){
-        return true;
+        if (!(i instanceof NGon))
+            throw new IllegalArgumentException(i + " is not NGon");
+
+        NGon i1 = (NGon)i;
+        Segment[] ngon_i = new Segment[i1.n];
+        for (int j=0;j<i1.n-1;j++)
+            ngon_i[j] = new Segment(i1.p[j], i1.p[j+1]);
+        ngon_i[i1.n-1] = new Segment(i1.p[n-1], i1.p[0]);
+        Segment[] ngon_this = new Segment[this.n];
+        for (int j=0;j<this.n-1;j++)
+            ngon_this[j] = new Segment(this.p[j], this.p[j+1]);
+        ngon_this[this.n-1] = new Segment(this.p[n-1], this.p[0]);
+        for(int j1=0;j1<i1.n;j1++)
+            for(int j2=0;j2<this.n;j2++)
+                if (ngon_i[j1].cross(ngon_this[j2]))
+                    return true;
+        return false;
     }
 
     public String toString(){
@@ -443,4 +556,11 @@ class TGon extends NGon{
         super(p);
     }
 
+    public double square(){
+        return this.square();
+    }
 }
+
+//class QGon extends NGon{
+//
+//}
